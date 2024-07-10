@@ -1,3 +1,5 @@
+# execute this script in order to receive the env_encrypted.py file which is need in order to connect to a wifi
+
 def xor_encrypt_decrypt(data, key):
     return bytearray([b ^ key for b in data])
 
