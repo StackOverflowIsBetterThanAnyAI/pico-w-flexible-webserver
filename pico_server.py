@@ -21,7 +21,7 @@ def get_current_hour():
 
 # Check if current time is within the allowed operating hours
 current_hour = get_current_hour()
-if 0 == current_hour < 8:
+if 0 <= current_hour < 8:
     print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
     print(Colors.RED + 'Socket closed' + Colors.RESET)
     raise SystemExit('Shutting down the server during off-hours.')
@@ -88,6 +88,15 @@ def update_led(new_status):
 # Listening for connections
 try:
     while True:
+        # Check if current time is within the allowed operating hours
+        current_hour = get_current_hour()
+        if 0 <= current_hour < 8:
+            print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
+            print(Colors.RED + 'Socket closed' + Colors.RESET)
+            led.off()
+            server_socket.close()
+            raise SystemExit('Shutting down the server during off-hours.')
+        
         client, addr = server_socket.accept()
         client_ip, client_port = addr
         print(Colors.YELLOW + f'Client IP: {client_ip}:{client_port}' + Colors.RESET)
@@ -111,8 +120,8 @@ try:
         print(Colors.CYAN + f'User-Agent: {user_agent}' + Colors.RESET)
         print('')
 
+        # Handle SSE connection
         if '/events' in request:
-            # Handle SSE connection
             client.send('HTTP/1.0 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n')
             clients.append(client)
             continue
