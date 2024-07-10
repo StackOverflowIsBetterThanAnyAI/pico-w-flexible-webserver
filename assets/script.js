@@ -1,5 +1,3 @@
-// TODO: when client connects => request current ledstatus
-
 let ledStatus = false
 
 const ledToggleButton = document.getElementById('led-toggle-button')
