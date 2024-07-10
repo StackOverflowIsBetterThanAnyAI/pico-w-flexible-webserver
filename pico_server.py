@@ -21,7 +21,7 @@ def get_current_hour():
 
 # Check if current time is within the allowed operating hours
 current_hour = get_current_hour()
-if 0 <= current_hour < 8:
+if 22 <= current_hour or current_hour < 6:
     print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
     print(Colors.RED + 'Socket closed' + Colors.RESET)
     raise SystemExit('Shutting down the server during off-hours.')
@@ -90,7 +90,7 @@ try:
     while True:
         # Check if current time is within the allowed operating hours
         current_hour = get_current_hour()
-        if 0 <= current_hour < 8:
+        if 22 <= current_hour or current_hour < 6:
             print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
             print(Colors.RED + 'Socket closed' + Colors.RESET)
             led.off()
@@ -174,6 +174,14 @@ except OSError as e:
 except KeyboardInterrupt:
     print(Colors.RED + 'KeyboardInterrupt: Stopping server...' + Colors.RESET)
 finally:
+    # Notify all connected clients about the server shutdown
+    for client in clients:
+        try:
+            client.send('data: server_shutdown\n\n')
+            client.close()
+        except Exception as e:
+            print('Error closing client:', e)
     print(Colors.RED + 'Socket closed' + Colors.RESET)
     led.off()
     server_socket.close()
+    
