@@ -1,0 +1,76 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    background-color: #18181b;
+    color: #f8fafc;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
+        sans-serif;
+    padding: clamp(16px, 25%, 96px) 24px 0 24px;
+    max-width: 512px;
+    margin: auto;
+}
+
+button {
+    margin-top: 8px;
+    display: flex;
+    border: none;
+    border-radius: 8px;
+    background-color: #3f3f46;
+}
+
+button:hover {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+button:focus-visible:not(:disabled) {
+    outline: #f8fafc solid 2px;
+}
+
+button:active:not(:disabled) {
+    outline: #a8a29e solid 2px;
+}
+
+h1,
+h2 {
+    text-align: center;
+    padding-bottom: 8px;
+}
+
+h1 {
+    font-size: min(12dvw, 48px);
+}
+
+h2 {
+    font-size: min(8dvw, 36px);
+}
+
+span {
+    min-width: 48px;
+    padding: 4px 0px;
+    font-size: min(6dvw, 16px);
+}
+
+.led-control {
+    display: flex;
+    justify-content: center;
+}
+
+#led-on {
+    border-radius: 8px;
+}
+
+#led-off {
+    border-radius: 8px;
+}
+
+.led:hover {
+    background-color: #57534e !important;
+}
