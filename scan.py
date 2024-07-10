@@ -10,7 +10,7 @@ scan_results = wlan.scan()
 sorted_results = sorted(scan_results, key=lambda x: x[3], reverse=True)
 
 # Print the header
-print("{:<40} {:<40} {:<10} {:<10}".format("SSID", "BSSID", "RSSI", "Security"))
+print('{:<40} {:<40} {:<10} {:<10}'.format('SSID', 'BSSID', 'RSSI', 'Security'))
 
 # Print the sorted and formatted wifi networks
 for element in sorted_results:
@@ -19,5 +19,5 @@ for element in sorted_results:
     rssi = element[3]
     security = element[4]
     
-    print("{:<30} {:<30} {:<15} {:<10}".format(ssid, bssid, rssi, security))
+    print('{:<30} {:<30} {:<15} {:<10}'.format(ssid, bssid, rssi, security))
     
