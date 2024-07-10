@@ -12,7 +12,7 @@ decrypted_ssid = xor_encrypt_decrypt(ssid, key).decode()
 decrypted_password = xor_encrypt_decrypt(password, key).decode()
 
 def connect():
-    rp2.country("DE")
+    rp2.country('DE')
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     
@@ -30,7 +30,7 @@ def connect():
         # -3 Link BadAuth
         
         while not wlan.isconnected() and wlan.status() >= 0 and wlan.status() != 3:
-            print("Waiting for connection...")
+            print('Waiting for connection...')
             time.sleep(1)
             
         if wlan.status() == 3:
@@ -47,16 +47,15 @@ def connect():
                 print(wlan.ifconfig())
                 return wlan, ip_address, decrypted_ssid
             else:
-                print("Invalid IP address. Reconnecting...")
+                print('Invalid IP address. Reconnecting...')
                 wlan.disconnect()
                 time.sleep(2)
                 continue
         else:
-            print("Connection failed with status:", wlan.status())
+            print('Connection failed with status:', wlan.status())
             wlan.disconnect()
             time.sleep(2)
             continue
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     wlan, ip_address, decrypted_ssid = connect()
-
