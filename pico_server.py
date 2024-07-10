@@ -3,10 +3,28 @@ import socket
 from machine import Pin
 from assets.colors import Colors
 from memory import print_memory
+import ntptime
+import time
 
 print_memory()
 
 wlan, ip_address, decrypted_ssid = connect()
+
+# Function to get current hour
+def get_current_hour():
+    try:
+        ntptime.settime()
+    except:
+        print('Could not sync time with NTP server')
+    tm = time.localtime()
+    return tm[3]  # returns the hour
+
+# Check if current time is within the allowed operating hours
+current_hour = get_current_hour()
+if 0 == current_hour < 8:
+    print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
+    print(Colors.RED + 'Socket closed' + Colors.RESET)
+    raise SystemExit('Shutting down the server during off-hours.')
 
 # Load the HTML page
 def get_html(html_name):
@@ -66,7 +84,7 @@ def update_led(new_status):
         led.value(0)
         status = 'OFF'
     send_update_to_clients(status)
-
+    
 # Listening for connections
 try:
     while True:
@@ -85,7 +103,7 @@ try:
             if line.startswith('User-Agent:'):
                 user_agent = line[len('User-Agent: '):]
             if line.startswith('Connection:'):
-                connection = line[len('Conenction: '):]
+                connection = line[len('Connection: '):]
             if line.startswith('Referer:'):
                 referer = line[len('Referer: '):]
         print(f'Connection: {connection}')
@@ -145,8 +163,8 @@ try:
 except OSError as e:
     print('OSError:', e)
 except KeyboardInterrupt:
-    print('KeyboardInterrupt: Stopping server...')
+    print(Colors.RED + 'KeyboardInterrupt: Stopping server...' + Colors.RESET)
 finally:
-    print('Socket closed.')
+    print(Colors.RED + 'Socket closed' + Colors.RESET)
     led.off()
     server_socket.close()
