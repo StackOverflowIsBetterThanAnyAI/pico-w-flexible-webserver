@@ -14,13 +14,19 @@ def xor_encrypt_decrypt(data, key):
 led = machine.Pin('LED', machine.Pin.OUT)
 
 def connect():
+    time.sleep(2)
     led.on()
     time.sleep(1)
     led.off()
-    time.sleep(5)
+    for i in range(10):
+        led.on()
+        time.sleep(0.25)
+        led.off()
+        time.sleep(0.75)
     rp2.country('DE')
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
+    time.sleep(2)
 
     # Function to decrypt SSID and password
     def decrypt_network(network):
@@ -32,6 +38,7 @@ def connect():
     available_networks = wlan.scan()
     print('Scanning networks...')
     log_to_file('Scanning networks...')
+    time.sleep(2)
     log_to_file(f"Available networks: {[net[0].decode() for net in available_networks]}")
     strongest_network = None
     max_signal_strength = -100  # Initialize with a very low value
@@ -39,7 +46,9 @@ def connect():
     for network_data in networks:
         ssid, password = decrypt_network(network_data)
         if ssid in [item[0].decode() for item in available_networks]:
+            time.sleep(2)
             wlan.connect(ssid, password)
+            time.sleep(5)
             print('Trying to connect to', ssid)
             log_to_file(f'Trying to connect to {ssid}')
             time.sleep(5)  # Wait for connection to establish
@@ -58,6 +67,7 @@ def connect():
                 led.on()
                 time.sleep(1)
                 led.off()
+                time.sleep(2)
                 signal_strength = wlan.status('rssi')
                 if signal_strength > max_signal_strength:
                     max_signal_strength = signal_strength
@@ -87,6 +97,7 @@ def connect():
                 print(wlan.ifconfig())
                 log_to_file('Connected')
                 log_to_file(wlan.ifconfig())
+                time.sleep(2)
                 return wlan, ip_address, decrypted_ssid
     else:
         print('No suitable network found.')
