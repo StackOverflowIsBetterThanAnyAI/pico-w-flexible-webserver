@@ -7,7 +7,12 @@ import machine
 def xor_encrypt_decrypt(data, key):
     return bytearray([b ^ key for b in data])
 
+led = machine.Pin('LED', machine.Pin.OUT)
+
 def connect():
+    led.on()
+    time.sleep(1)
+    led.off()
     rp2.country('DE')
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -59,7 +64,6 @@ def connect():
             if ip_address != '0.0.0.0':
                 print('Connected to:', decrypted_ssid)
                 print('IP Address:', ip_address)
-                led = machine.Pin('LED', machine.Pin.OUT)
                 for i in range(wlan.status()):
                     led.on()
                     time.sleep(.75)
