@@ -4,6 +4,10 @@ from lib.env_encrypted import networks, key
 import rp2
 import machine
 
+def log_to_file(message):
+    with open("log.txt", "a") as f:
+        f.write(f"{message}\n")
+
 def xor_encrypt_decrypt(data, key):
     return bytearray([b ^ key for b in data])
 
@@ -13,6 +17,7 @@ def connect():
     led.on()
     time.sleep(1)
     led.off()
+    time.sleep(5)
     rp2.country('DE')
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -26,6 +31,8 @@ def connect():
     # Scan for available networks and connect to the strongest one
     available_networks = wlan.scan()
     print('Scanning networks...')
+    log_to_file('Scanning networks...')
+    log_to_file(f"Available networks: {[net[0].decode() for net in available_networks]}")
     strongest_network = None
     max_signal_strength = -100  # Initialize with a very low value
 
@@ -34,6 +41,7 @@ def connect():
         if ssid in [item[0].decode() for item in available_networks]:
             wlan.connect(ssid, password)
             print('Trying to connect to', ssid)
+            log_to_file(f'Trying to connect to {ssid}')
             time.sleep(5)  # Wait for connection to establish
             
             # Handle connection error
@@ -47,6 +55,9 @@ def connect():
             # -3 Link BadAuth
 
             if wlan.isconnected():
+                led.on()
+                time.sleep(1)
+                led.off()
                 signal_strength = wlan.status('rssi')
                 if signal_strength > max_signal_strength:
                     max_signal_strength = signal_strength
@@ -64,6 +75,8 @@ def connect():
             if ip_address != '0.0.0.0':
                 print('Connected to:', decrypted_ssid)
                 print('IP Address:', ip_address)
+                log_to_file(f'Connected to: {decrypted_ssid}')
+                log_to_file(f'IP Address: {ip_address}')
                 for i in range(wlan.status()):
                     led.on()
                     time.sleep(.75)
@@ -72,8 +85,11 @@ def connect():
 
                 print('Connected')
                 print(wlan.ifconfig())
+                log_to_file('Connected')
+                log_to_file(wlan.ifconfig())
                 return wlan, ip_address, decrypted_ssid
     else:
         print('No suitable network found.')
+        log_to_file('No suitable network found.')
         return None, None, None
     
