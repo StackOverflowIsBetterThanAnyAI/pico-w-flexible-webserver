@@ -13,6 +13,10 @@ print_memory()
 
 wlan, ip_address, decrypted_ssid = connect()
 
+def log_to_file(message):
+    with open("log.txt", "a") as f:
+        f.write(f"{message}\n")
+        
 # Function to get current hour
 def get_current_hour():
     try:
@@ -21,6 +25,7 @@ def get_current_hour():
         return tm[3]  # returns the hour
     except Exception as e:
         print('Could not sync time with NTP server:', e)
+        log_to_file('Could not sync time with NTP server')
         return None  # Return None if time sync fails
 
 # Load the HTML page
@@ -31,6 +36,7 @@ def get_html(html_name):
         return html
     except Exception as e:
         print('Error reading HTML file:', e)
+        log_to_file(f'Error reading HTML file: {e}', e)
         return '<html><body><h1>File not found</h1></body></html>'
 
 # HTTP start server with socket
@@ -45,10 +51,15 @@ def start_server(ports):
             print('Listening on', addr)
             print('Connected to SSID:', decrypted_ssid)
             print('Connect on', 'http://{}:{}'.format(ip_address, port))
+            log_to_file(f'Listening on {addr}')
+            log_to_file(f'Connected to SSID {decrypted_ssid}')
+            log_to_file(f'Connect on {ip_address}{port}')
             print('')
             return s
         except OSError as e:
-            print(f'OSError on port {port}, trying another port:', e)
+            print(f'OSError on port {port}, trying another port.', e)
+            log_to_file(f'OSError on port {port}, trying another port.' )
+            log_to_file(e)
             s.close()
     return None
 
@@ -61,6 +72,7 @@ server_socket = start_server(ports_to_try)
 # If all attempts fail, exit the script
 if not server_socket:
     print('Failed to bind to any of the specified ports. Exiting...')
+    log_to_file('Failed to bind to any of the specified ports. Exiting...')
     raise SystemExit
 
 led = Pin('LED', Pin.OUT)
@@ -74,11 +86,13 @@ def send_update_to_clients(status):
             client.send('data: {}\n\n'.format(status))
         except Exception as e:
             print('Error sending update:', e)
+            log_to_file('Error sending update:')
             clients.remove(client)
             try:
                 client.close()
             except Exception as e_close:
                 print('Error closing client:', e_close)
+                log_to_file('Error closing client:')
 
 # Update LED status and notify clients
 def update_led(new_status):
@@ -106,13 +120,14 @@ async def handle_sse_client(client):
     client.close()
 
 # Listening for connections
-async def main():
+async def run_server():
     while True:
         try:
             client, addr = server_socket.accept()
             client.settimeout(60)  # Set timeout for client connections
             client_ip, client_port = addr
             print(Colors.YELLOW + f'Client IP: {client_ip}:{client_port}' + Colors.RESET)
+            log_to_file( f'Client IP: {client_ip}:{client_port}')
 
             # receive the request
             request = client.recv(1024).decode()
@@ -134,6 +149,9 @@ async def main():
             print(f'Connection: {connection}')
             print(f'Referer: {referer}')
             print(Colors.CYAN + f'User-Agent: {user_agent}' + Colors.RESET)
+            log_to_file(f'Connection: {connection}')
+            log_to_file(f'Referer: {referer}')
+            log_to_file( f'User-Agent: {user_agent}')
             print('')
 
             # Handle SSE connection
@@ -176,15 +194,18 @@ async def main():
             if '/led=on' in request:
                 update_led('ON')
                 print(Colors.GREEN + f'LED {status}' + Colors.RESET)
+                log_to_file(f'LED {status}')
 
             if '/led=off' in request:
                 update_led('OFF')
                 print(Colors.RED + f'LED {status}' + Colors.RESET)
+                log_to_file(f'LED {status}')
 
             # Check if current time is within the allowed operating hours
             current_hour = get_current_hour()
             if current_hour is not None and (22 <= current_hour or current_hour < 6):
                 print(Colors.RED + 'Server is offline between 00:00 and 08:00' + Colors.RESET)
+                log_to_file('Server is offline between 00:00 and 08:00')
                 response = get_html('shutdown.html')
                 update_led('OFF')
             else:
@@ -195,16 +216,20 @@ async def main():
             client.close()
         except Exception as e:
             print('Error handling client connection:', e)
+            log_to_file('Error handling client connection:')
             client.close()
 
 try:
-    asyncio.run(main())
+    asyncio.run(run_server())
 except OSError as e:
     print('OSError:', e)
+    log_to_file('OSError:')
 except KeyboardInterrupt:
     print(Colors.RED + 'KeyboardInterrupt: Stopping server...' + Colors.RESET)
+    log_to_file('KeyboardInterrupt: Stopping server...' )
 finally:
     print(Colors.RED + 'Socket closed' + Colors.RESET)
+    log_to_file( 'Socket closed')
     led.off()
     server_socket.close()
     for client in clients:
@@ -212,3 +237,4 @@ finally:
             client.close()
         except Exception as e:
             print('Error closing client:', e)
+            log_to_file('Error closing client:')
