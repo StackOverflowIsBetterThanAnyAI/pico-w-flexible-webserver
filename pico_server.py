@@ -1,10 +1,13 @@
-from connect import connect
+# pico_server.py or main.py
+
 import socket
+import ntptime
+import time
+import asyncio
 from machine import Pin
 from assets.colors import Colors
 from memory import print_memory
-import ntptime
-import time
+from connect import connect
 
 print_memory()
 
@@ -14,29 +17,28 @@ wlan, ip_address, decrypted_ssid = connect()
 def get_current_hour():
     try:
         ntptime.settime()
-    except:
-        print('Could not sync time with NTP server')
-    tm = time.localtime()
-    return tm[3]  # returns the hour
-
-# Check if current time is within the allowed operating hours
-current_hour = get_current_hour()
-if 22 <= current_hour or current_hour < 6:
-    print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
-    print(Colors.RED + 'Socket closed' + Colors.RESET)
-    raise SystemExit('Shutting down the server during off-hours.')
+        tm = time.localtime()
+        return tm[3]  # returns the hour
+    except Exception as e:
+        print('Could not sync time with NTP server:', e)
+        return None  # Return None if time sync fails
 
 # Load the HTML page
 def get_html(html_name):
-    with open(html_name, 'r') as file:
-        html = file.read()
-    return html
+    try:
+        with open(html_name, 'r') as file:
+            html = file.read()
+        return html
+    except Exception as e:
+        print('Error reading HTML file:', e)
+        return '<html><body><h1>File not found</h1></body></html>'
 
 # HTTP start server with socket
 def start_server(ports):
     for port in ports:
         addr = socket.getaddrinfo('0.0.0.0', port)[0][-1]
         s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow reusing the port
         try:
             s.bind(addr)
             s.listen(5)  # allow multiple connections
@@ -67,12 +69,16 @@ clients = []
 
 # Function to send updates to all connected clients
 def send_update_to_clients(status):
-    for client in clients:
+    for client in clients[:]:
         try:
             client.send('data: {}\n\n'.format(status))
         except Exception as e:
             print('Error sending update:', e)
             clients.remove(client)
+            try:
+                client.close()
+            except Exception as e_close:
+                print('Error closing client:', e_close)
 
 # Update LED status and notify clients
 def update_led(new_status):
@@ -84,104 +90,125 @@ def update_led(new_status):
         led.value(0)
         status = 'OFF'
     send_update_to_clients(status)
-    
-# Listening for connections
-try:
+
+# Asynchronous function to handle SSE clients
+async def handle_sse_client(client):
     while True:
-        # Check if current time is within the allowed operating hours
-        current_hour = get_current_hour()
-        if 22 <= current_hour or current_hour < 6:
-            print(Colors.RED + 'Server is off between 00:00 and 08:00' + Colors.RESET)
-            print(Colors.RED + 'Socket closed' + Colors.RESET)
-            led.off()
-            server_socket.close()
-            raise SystemExit('Shutting down the server during off-hours.')
-        
-        client, addr = server_socket.accept()
-        client_ip, client_port = addr
-        print(Colors.YELLOW + f'Client IP: {client_ip}:{client_port}' + Colors.RESET)
-        
-        # receive the request
-        request = client.recv(1024).decode()
-        
-        # extract and print the User-Agent from the request headers
-        user_agent = ''
-        referer = ''
-        connection = ''
-        for line in request.split('\r\n'):
-            if line.startswith('User-Agent:'):
-                user_agent = line[len('User-Agent: '):]
-            if line.startswith('Connection:'):
-                connection = line[len('Connection: '):]
-            if line.startswith('Referer:'):
-                referer = line[len('Referer: '):]
-        print(f'Connection: {connection}')
-        print(f'Referer: {referer}')
-        print(Colors.CYAN + f'User-Agent: {user_agent}' + Colors.RESET)
-        print('')
+        try:
+            await asyncio.sleep(1)  # keep the connection alive
+        except OSError:
+            break
 
-        # Handle SSE connection
-        if '/events' in request:
-            client.send('HTTP/1.0 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n')
-            clients.append(client)
-            continue
+    try:
+        clients.remove(client)
+    except ValueError:
+        pass
+    client.close()
 
-        if '/favicon.ico' in request:
-            with open('assets/favicon.ico', 'rb') as f:
-                favicon = f.read()
-            client.send('HTTP/1.0 200 OK\r\nContent-type: image/x-icon\r\n\r\n')
-            client.send(favicon)
-            client.close()
-            continue
-        
-        if '/assets/style.css' in request:
-            with open('assets/style.css', 'r') as f:
-                css = f.read()
-            client.send('HTTP/1.0 200 OK\r\nContent-type: text/css\r\n\r\n')
-            client.send(css.encode('utf-8'))
-            client.close()
-            continue
-        
-        if '/assets/script.js' in request:
-            with open('assets/script.js', 'r') as f:
-                js = f.read()
-            client.send('HTTP/1.0 200 OK\r\nContent-type: text/javascript\r\n\r\n')
-            client.send(js.encode('utf-8'))
-            client.close()
-            continue
+# Listening for connections
+async def main():
+    while True:
+        try:
+            client, addr = server_socket.accept()
+            client.settimeout(60)  # Set timeout for client connections
+            client_ip, client_port = addr
+            print(Colors.YELLOW + f'Client IP: {client_ip}:{client_port}' + Colors.RESET)
 
-        if '/get_status' in request:
-            client.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
-            client.send(f'{{"status": "{status}"}}')
+            # receive the request
+            request = client.recv(1024).decode()
+            if not request:
+                client.close()
+                continue
+
+            # extract and print the User-Agent from the request headers
+            user_agent = ''
+            referer = ''
+            connection = ''
+            for line in request.split('\r\n'):
+                if line.startswith('User-Agent:'):
+                    user_agent = line[len('User-Agent: '):]
+                if line.startswith('Connection:'):
+                    connection = line[len('Connection: '):]
+                if line.startswith('Referer:'):
+                    referer = line[len('Referer: '):]
+            print(f'Connection: {connection}')
+            print(f'Referer: {referer}')
+            print(Colors.CYAN + f'User-Agent: {user_agent}' + Colors.RESET)
+            print('')
+
+            # Handle SSE connection
+            if '/events' in request:
+                client.send('HTTP/1.0 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n')
+                clients.append(client)
+                asyncio.create_task(handle_sse_client(client))
+                continue
+
+            if '/favicon.ico' in request:
+                with open('assets/favicon.ico', 'rb') as f:
+                    favicon = f.read()
+                client.send('HTTP/1.0 200 OK\r\nContent-type: image/x-icon\r\n\r\n')
+                client.send(favicon)
+                client.close()
+                continue
+
+            if '/assets/style.css' in request:
+                with open('assets/style.css', 'r') as f:
+                    css = f.read()
+                client.send('HTTP/1.0 200 OK\r\nContent-type: text/css\r\n\r\n')
+                client.send(css.encode('utf-8'))
+                client.close()
+                continue
+
+            if '/assets/script.js' in request:
+                with open('assets/script.js', 'r') as f:
+                    js = f.read()
+                client.send('HTTP/1.0 200 OK\r\nContent-type: text/javascript\r\n\r\n')
+                client.send(js.encode('utf-8'))
+                client.close()
+                continue
+
+            if '/get_status' in request:
+                client.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
+                client.send(f'{{"status": "{status}"}}')
+                client.close()
+                continue
+
+            if '/led=on' in request:
+                update_led('ON')
+                print(Colors.GREEN + f'LED {status}' + Colors.RESET)
+
+            if '/led=off' in request:
+                update_led('OFF')
+                print(Colors.RED + f'LED {status}' + Colors.RESET)
+
+            # Check if current time is within the allowed operating hours
+            current_hour = get_current_hour()
+            if current_hour is not None and (22 <= current_hour or current_hour < 6):
+                print(Colors.RED + 'Server is offline between 00:00 and 08:00' + Colors.RESET)
+                response = get_html('shutdown.html')
+                update_led('OFF')
+            else:
+                response = get_html('index.html')
+
+            client.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+            client.send(response.encode('utf-8'))
             client.close()
-            continue
-        
-        if '/led=on' in request:
-            update_led('ON')
-            print(Colors.GREEN + f'LED {status}' + Colors.RESET)
-        
-        if '/led=off' in request:
-            update_led('OFF')
-            print(Colors.RED + f'LED {status}' + Colors.RESET)
-         
-        response = get_html('index.html')
-        client.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-        client.send(response.encode('utf-8'))
-        client.close()
-        
+        except Exception as e:
+            print('Error handling client connection:', e)
+            client.close()
+
+try:
+    asyncio.run(main())
 except OSError as e:
     print('OSError:', e)
 except KeyboardInterrupt:
     print(Colors.RED + 'KeyboardInterrupt: Stopping server...' + Colors.RESET)
 finally:
-    # Notify all connected clients about the server shutdown
-    for client in clients:
-        try:
-            client.send('data: server_shutdown\n\n')
-            client.close()
-        except Exception as e:
-            print('Error closing client:', e)
     print(Colors.RED + 'Socket closed' + Colors.RESET)
     led.off()
     server_socket.close()
-    
+    for client in clients:
+        try:
+            client.close()
+        except Exception as e:
+            print('Error closing client:', e)
