@@ -26,7 +26,7 @@
 
 13. If the LED blinks another three times, you are ready to go. Everything has worked flawlessly and you can now connect to your webserver.
 
-14. If problems occur, check the automatically generated log.txt file, which will help you start debugging.
+14. If problems occur, check the automatically generated `log.txt` file, which will help you start debugging.
 
 15. You can connect multiple devices to this webserver. Depending on the time, you wil either receive a html file which says that the server is currently offline or a file which lets you control the onboard LED.
 
