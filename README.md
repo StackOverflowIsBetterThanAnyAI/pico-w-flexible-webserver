@@ -26,8 +26,10 @@
 
 13. If the LED blinks another three times, you are ready to go. Everything has worked flawlessly and you can now connect to your webserver.
 
-14. You can connect multiple devices to this webserver. Depending on the time, you wil either receive a html file which says that the server is currently offline or a file which lets you control the onboard LED.
+14. If problems occur, check the automatically generated log.txt file, which will help you start debugging.
 
-15. As already mentioned, you are allowed to use multiple devices. Because of SSE (Server Sent Events), the UI will update on all devices depending on the current LED state.
+15. You can connect multiple devices to this webserver. Depending on the time, you wil either receive a html file which says that the server is currently offline or a file which lets you control the onboard LED.
 
-16. I hope that this (more or less) simple project gives you an idea of how you can utilize your Raspberry Pi Pico W for your use case.
+16. As already mentioned, you are allowed to use multiple devices. Because of SSE (Server Sent Events), the UI will update on all devices depending on the current LED state.
+
+17. I hope that this (more or less) simple project gives you an idea of how you can utilize your Raspberry Pi Pico W for your use case.
