@@ -30,6 +30,6 @@
 
 15. You can connect multiple devices to this webserver. Depending on the time, you wil either receive a html file which says that the server is currently offline or a file which lets you control the onboard LED.
 
-16. As already mentioned, you are allowed to use multiple devices. Because of SSE (Server Sent Events), the UI will update on all devices depending on the current LED state.
+16. As already mentioned, you are allowed to use multiple devices. Because of <b>SSE (Server Sent Events)</b>, the UI will update on all devices depending on the current LED state.
 
 17. I hope that this (more or less) simple project gives you an idea of how you can utilize your Raspberry Pi Pico W for your use case.
