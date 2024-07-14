@@ -5,8 +5,8 @@ import rp2
 import machine
 
 def log_to_file(message):
-    with open("log.txt", "a") as f:
-        f.write(f"{message}\n")
+    with open('log.txt', 'a') as f:
+        f.write(f'{message}\n')
 
 def xor_encrypt_decrypt(data, key):
     return bytearray([b ^ key for b in data])
@@ -39,7 +39,7 @@ def connect():
     print('Scanning networks...')
     log_to_file('Scanning networks...')
     time.sleep(2)
-    log_to_file(f"Available networks: {[net[0].decode() for net in available_networks]}")
+    log_to_file(f'Available networks: {[net[0].decode() for net in available_networks]}')
     strongest_network = None
     max_signal_strength = -100  # Initialize with a very low value
 
@@ -102,5 +102,6 @@ def connect():
     else:
         print('No suitable network found.')
         log_to_file('No suitable network found.')
+        led.on()
         return None, None, None
     
