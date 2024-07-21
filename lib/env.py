@@ -12,13 +12,12 @@ networks = [
     },
     {
         'ssid': b'0987654321',
-        'password': b''****************',',
+        'password': b'****************',
     },
     {
         'ssid': b'1029384756',
-        'password': b''****************',',
+        'password': b'****************',
     },
-    # Add more networks as needed
 ]
 
 key = 0x55  # XOR key
